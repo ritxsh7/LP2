@@ -1,121 +1,94 @@
-#include <bits/stdc++.h>
-using namespace std;
-#define N 3
-struct Node
-{
-    Node *parent;
-    int mat[N][N];
-    int x, y;
-    int cost;
-    int level;
-};
-void printMatrix(int mat[N][N])
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-            printf("%d ", mat[i][j]);
-        printf("\n");
-    }
-}
-Node *newNode(int mat[N][N], int x, int y, int newX, int newY, int level, Node *parent)
-{
-    Node *node = new Node;
-    node->parent = parent;
-    memcpy(node->mat, mat, sizeof node->mat);
-    swap(node->mat[x][y], node->mat[newX][newY]);
-    node->cost = INT_MAX;
-    node->level = level;
-    node->x = newX;
-    node->y = newY;
-    return node;
-}
-int row[] = {1, 0, -1, 0};
-int col[] = {0, -1, 0, 1};
-int calculateCost(int initial[N][N], int final[N][N])
-{
-    int count = 0;
-    for (int i = 0; i < N; i++)
-        for (int j = 0; j < N; j++)
-            if (initial[i][j] && initial[i][j] != final[i][j])
-                count++;
-    return count;
-}
-int isSafe(int x, int y)
-{
-    return (x >= 0 && x < N && y >= 0 && y < N);
-}
-void printPath(Node *root)
-{
-    if (root == NULL)
-        return;
-    printPath(root->parent);
-    printMatrix(root->mat);
-    cout << "hscore:" << root->cost << "\ngscore:" << root->level << "\nfscore:" << root->cost + root->level << "\n";
-    printf("\n");
-}
-struct comp
-{
-    bool operator()(const Node *lhs, const Node *rhs) const
-    {
-        return (lhs->cost + lhs->level) > (rhs->cost + rhs->level);
-    }
-};
-void solve(int initial[N][N], int x, int y, int final[N][N])
-{
-    priority_queue<Node *, std::vector<Node *>, comp> pq;
-    Node *root = newNode(initial, x, y, x, y, 0, NULL);
-    root->cost = calculateCost(initial, final);
-    pq.push(root);
-    while (!pq.empty())
-    {
-        Node *min = pq.top();
-        pq.pop();
-        if (min->cost == 0)
-        {
-            printPath(min);
-            return;
-        }
-        for (int i = 0; i < 4; i++)
-        {
-            if (isSafe(min->x + row[i], min->y + col[i]))
-            {
-                Node *child = newNode(min->mat, min->x, min->y, min->x + row[i], min->y + col[i], min->level + 1, min);
-                child->cost = calculateCost(child->mat, final);
-                pq.push(child);
-            }
-        }
-    }
-}
-int main()
-{
-    int initial[3][3];
-    int x, y;
-    cout << "Enter Initial Block Structure\nEnter 0 for blank space:\n";
-    for (int i = 0; i < 3; i++)
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            cout << "Row " << i + 1 << " Column " << j + 1 << " Element = ";
-            cin >> initial[i][j];
-            if (initial[i][j] == 0)
-            {
-                x = i;
-                y = j;
-            }
-        }
-    }
-    int final[3][3];
-    cout << "\n\nEnter Final Block Structure\nEnter 0 for blank space:\n";
-    for (int i = 0; i < 3; i++)
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            cout << "Row " << i + 1 << " Column " << j + 1 << " Element = ";
-            cin >> final[i][j];
-        }
-    }
-    cout << "\n\nThis is the solution using A * Algorithm:\n\n";
-    solve(initial, x, y, final);
-    return 0;
-}
+class Node:
+    def __init__(self, data, level, fval):
+        self.data = data
+        self.level = level
+        self.fval = fval
+    def generate_child(self):
+        x, y = self.find(self.data, '_')
+        val_list = [[x, y-1], [x, y+1], [x-1, y], [x+1, y]]
+        children = []
+        for i in val_list:
+            child = self.shuffle(self.data, x, y, i[0], i[1])
+            if child is not None:
+                child_node = Node(child, self.level+1, 0)
+                children.append(child_node)
+        return children
+    def shuffle(self, puz, x1, y1, x2, y2):
+        if 0 <= x2 < len(self.data) and 0 <= y2 < len(self.data):
+            temp_puz = self.copy(puz)
+            temp = temp_puz[x2][y2]
+            temp_puz[x2][y2] = temp_puz[x1][y1]
+            temp_puz[x1][y1] = temp
+            return temp_puz
+        else:
+            return None
+    def copy(self, root):
+        temp = []
+        for i in root:
+            t = []
+            for j in i:
+                t.append(j)
+            temp.append(t)
+        return temp
+    def find(self, puz, x):
+        for i in range(len(self.data)):
+            for j in range(len(self.data)):
+                if puz[i][j] == x:
+                    return i, j
+class Puzzle:
+    def __init__(self, size):
+        self.n = size
+        self.open = []
+        self.closed = []
+        self.max_depth = 200  # Maximum depth limit
+    def accept(self):
+        puz = []
+        for i in range(self.n):
+            temp = input().split(" ")
+            puz.append(temp)
+        return puz
+    def f(self, start, goal):
+        return self.h(start.data, goal) + start.level
+    def h(self, start, goal):
+        temp = 0
+        for i in range(self.n):
+            for j in range(self.n):
+                if start[i][j] != goal[i][j] and start[i][j] != '_':
+                    temp += 1
+        return temp
+    def process(self):
+        print("Enter the start state matrix:-")
+        start = self.accept()
+        print("Enter the goal state matrix:-")
+        goal = self.accept()
+        start = Node(start, 0, 0)
+        start.fval = self.f(start, goal)
+        self.open.append(start)
+        depth = 0
+        while self.open:
+            if depth > self.max_depth:
+                print("Maximum depth reached. Goal state not found.")
+                return
+            cur = self.open[0]
+            for i in cur.data:
+                for j in i:
+                    print(j, end=" ")
+                print("")
+            print("")
+            print("  | ")
+            print("  | ")
+            print(" \\\'/ \n")
+            if self.h(cur.data, goal) == 0:
+                print("Goal state found.")
+                break
+            for i in cur.generate_child():
+                i.fval = self.f(i, goal)
+                self.open.append(i)
+            self.closed.append(cur)
+            del self.open[0]
+            self.open.sort(key=lambda x: x.fval, reverse=False)
+            depth += 1
+        else:
+            print("No solution found within maximum depth.")
+puz = Puzzle(3)
+puz.process()
